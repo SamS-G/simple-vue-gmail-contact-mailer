@@ -1,0 +1,6 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="client: chrome" type="JavascriptDebugType" editBeforeRun="true" focusToolWindowBeforeRun="true" uri="http://localhost:3000" useFirstLineBreakpoints="true">
+    <mapping url="http://localhost:3000" local-file="$PROJECT_DIR$" />
+    <method v="2" />
+  </configuration>
+</component>

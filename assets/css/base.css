@@ -1,0 +1,17 @@
+@font-face {
+  font-family: "poppins";
+  src: url("../fonts/Poppins_Light_300.otf") format("opentype");
+  src: url("../fonts/Poppins_Light_300.ttf") format("truetype");
+}
+
+* {
+  font-family: "poppins", sans-serif;
+}
+.section-title {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+h5 {
+  display: flex;
+  align-items: center;
+}

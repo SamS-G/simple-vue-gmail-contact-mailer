@@ -1,0 +1,11 @@
+@import "base.css";
+
+#me,
+#skill,
+#testimonial,
+#contact {
+  margin-top: 10vh;
+}
+.form-control:hover {
+  border: 1px solid grey;
+}
