@@ -80,11 +80,9 @@ withDefaults(
           <i class="cross-circle d-flex">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              xmlns:xlink="http://www.w3.org/1999/xlink"
               width="35px"
               height="35px"
               viewBox="0 0 35 35"
-              version="1.1"
             >
               <g id="surface1">
                 <path
@@ -128,42 +126,53 @@ withDefaults(
 
 <style scoped>
 .spinner {
-  border-bottom: 4px solid  #B2D7FF;
-  border-left: 4px solid #9AB4D2 ;
-  border-right: 4px solid #9AB4D2 ;
+  border-bottom: 4px solid #B2D7FF;
+  border-left: 4px solid #9AB4D2;
+  border-right: 4px solid #9AB4D2;
   border-top: 4px solid #B2D7FF;
   border-radius: 100%;
   height: 32px;
   width: 32px;
   animation: spin .6s infinite linear;
   text-indent: 999em;
-  bottom: 3.5%!important;
-  left: 45%!important;
+  bottom: 3.5% !important;
+  left: 45% !important;
 }
+
 @keyframes spin {
-  from {transform: rotate(0deg);}
-  to {transform: rotate(359deg);}
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(359deg);
+  }
 }
+
 .success, .error {
- display: flex;
+  display: flex;
 }
+
 .icon i {
   font-size: 35px;
 }
-.toast.success{
+
+.toast.success {
   border: 2px solid #14A44D !important;
 }
+
 .badge-check svg, .cross-circle svg {
   filter: none;
 }
+
 .toast.error {
   border: 2px solid #D90429 !important;
 }
+
 .toast {
   position: absolute;
   bottom: 20%;
   left: 2%;
-  background-color:#EBEBEC;
+  background-color: #EBEBEC;
   padding: 1rem;
   width: max-content;
 }

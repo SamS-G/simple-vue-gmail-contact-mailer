@@ -12,11 +12,6 @@ import type { UniversalForm } from '~/server/types/universal-form'
 import type { Email } from '~/server/types/email'
 
 export class GmailService implements IGmailService {
-  private templateService: ITemplateService
-  private gmailApiService: IGmailApiService
-  private emailConfigService: IEmailConfigService
-  private validationService: IValidationService
-
   constructor(
     private validationService: IValidationService,
     private gmailApiService: IGmailApiService,
@@ -25,11 +20,14 @@ export class GmailService implements IGmailService {
   ) {}
 
   /**
-   * Create, validate, config and the email with gmail API
+   * Create email template
+   * Validate content
+   * Config and send the email with gmail API
    * @param formData
    * @param access_token
+   * @return object
    */
-  async sendGmail(formData: UniversalForm<EmailForm>, access_token: string) {
+  async sendGmail(formData: UniversalForm<EmailForm>, access_token: string): Promise<{ success: boolean, message: string }> {
     // Create email template
     const email = await this.templateService.createTemplate(formData)
     // Validate created email

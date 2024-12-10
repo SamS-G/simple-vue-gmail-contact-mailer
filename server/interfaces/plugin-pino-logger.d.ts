@@ -1,10 +1,27 @@
-import type { NitroApp } from 'nitropack/types'
-import type { ErrorDetails } from '~/server/interfaces/error-details'
+export interface LoggerConfig {
+  /**
+   * The private configuration key for the log file path.
+   */
+  log: string
+}
 
-export interface IPluginPinoLogger extends NitroApp {
-  logger?: {
-    info: (message: string | ErrorDetails) => void
-    warn: (message: string | ErrorDetails) => void
-    error: (message: string | ErrorDetails) => void
+export interface LoggerOptions {
+  level: string
+  formatters: {
+    level: (label: string) => { level: string }
+  }
+  timestamp: () => string
+  transport?: {
+    target: string
+    options: {
+      colorize: boolean
+      translateTime: string
+      ignore: string
+      destination: string
+    }
+  }
+  base: {
+    app: string
+    environment: string
   }
 }

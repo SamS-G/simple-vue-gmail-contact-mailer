@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import AppContact from '~/components/AppContact.vue'
-import AppFooter from '~/components/AppFooter.vue'
 </script>
 
 <template>
@@ -8,9 +7,6 @@ import AppFooter from '~/components/AppFooter.vue'
     <div>
       <div>
         <AppContact />
-      </div>
-      <div>
-        <AppFooter />
       </div>
     </div>
   </div>

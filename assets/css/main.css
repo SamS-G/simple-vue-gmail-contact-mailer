@@ -1,11 +1,74 @@
 @import "base.css";
-
-#me,
-#skill,
-#testimonial,
 #contact {
   margin-top: 10vh;
 }
 .form-control:hover {
   border: 1px solid grey;
 }
+.input-wrapper, .select-wrapper {
+  height: 12vh;
+  overflow-y: auto;
+}
+.input-wrapper-checkbox {
+  height: 11vh;
+  overflow-y: auto;
+}
+.input-wrapper-text-area {
+  height: 34vh;
+  overflow-y: auto;
+}
+
+/* Mobile */
+@media (max-width: 576px) {
+  .input-wrapper, .select-wrapper {
+    height: 12vh;
+    overflow-y: auto;
+  }
+  .input-wrapper-checkbox {
+    height: 10vh;
+    overflow-y: auto;
+  }
+  .input-wrapper-text-area {
+    height: 33vh;
+    overflow-y: auto;
+  }
+  p small {
+    font-size: 0.700rem!important;
+  }
+  .input-wrapper label,
+  .input-wrapper-text-area label,
+  .select-wrapper label,
+  .input-wrapper-checkbox label
+  {
+    font-size: 0.7rem!important;
+  }
+  .input-wrapper-checkbox label {
+    margin-left: 5px!important;
+  }
+  .form-check-input {
+    width: 12px;
+    height: 12px;
+  }
+  .form-control {
+    font-size: 12px;
+    padding: 0.25rem 0.50rem;
+  }
+  .options-list {
+    font-size: 11px;
+  }
+  p {
+    margin-bottom: 0.5rem;
+  }
+  h3 {
+    font-size: 1.3rem;
+  }
+ #contact div div p {
+    font-size: 0.8rem;
+  }
+}
+
+/* Tablette */
+@media (min-width: 577px) and (max-width: 992px) { }
+
+/* Desktop */
+@media (min-width: 993px) { }

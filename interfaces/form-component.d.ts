@@ -6,11 +6,6 @@ export interface InputProps {
 export interface SelectProps {
   select: Select
 }
-export interface OptionProps {
-  options: Option[]
-  placeholder?: string
-  reset: boolean
-}
 export interface Select {
   id: string
   name: string
@@ -43,9 +38,9 @@ export interface AuthResponseData {
 }
 export interface ModalStatusProps {
   visible: boolean
-  status: string
-  successMessage: string
-  errorMessage: string
-  successTitle: string
-  errorTitle: string
+  status?: string
+  successMessage?: string
+  errorMessage?: string
+  successTitle?: string
+  errorTitle?: string
 }

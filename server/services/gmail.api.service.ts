@@ -55,11 +55,11 @@ export class GmailApiService implements IGmailApiService {
   }
 
   /**
-   * Generate the OAuth identification link used for generating a code
+   * Generate OAuth identification link used for generating a code
    * used to receive the refresh_token
    */
   async getAuthUrl(): Promise<string> {
-    const auth = this.getAuth()
+    const auth = this._ensureAuthInitialized()
     return auth.generateAuthUrl({
       access_type: 'offline',
       prompt: 'consent',
@@ -74,9 +74,9 @@ export class GmailApiService implements IGmailApiService {
   async getFirstAccessToken(code: string) {
     try {
       // If first connection with code received by getUrl
-      const auth = this.getAuth()
+      const auth = this._ensureAuthInitialized()
       const { tokens } = await auth.getToken(code)
-      console.log('TOKENS =>', tokens)
+      console.log('CREDENTIALS =>', tokens)
       return tokens
     }
     catch (error) {
@@ -123,8 +123,9 @@ export class GmailApiService implements IGmailApiService {
    * Send the email by the Google Gmail API
    * @param encodedEmail
    * @param access_token
+   * @return
    */
-  async send(encodedEmail: string, access_token: string) {
+  async send(encodedEmail: string, access_token: string): Promise<{ success: boolean, message: string }> {
     const auth = this._ensureAuthInitialized()
 
     auth.setCredentials({ access_token })

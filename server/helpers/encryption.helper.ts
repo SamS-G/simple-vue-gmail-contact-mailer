@@ -9,7 +9,10 @@ const IV_LENGTH = 16
 if (ENCRYPTION_KEY.length !== 32) {
   throw new EncryptionError('The encryption key must contain exactly 32 characters.')
 }
-
+/**
+ * Encrypt content
+ * @param text
+ */
 export const encrypt = (text: string) => {
   const iv = crypto.randomBytes(IV_LENGTH)
   const cipher = crypto.createCipheriv(ALGORITHM, Buffer.from(ENCRYPTION_KEY), iv)

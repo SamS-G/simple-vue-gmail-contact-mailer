@@ -7,7 +7,7 @@ import type { ModalStatus } from '~/server/interfaces/modal-status'
 
 const statusModal = ref<ModalStatus>()
 
-const emit = defineEmits(['formSend', 'close'])
+const emit = defineEmits(['update-status-modal'])
 
 const SEND_EMAIL_URL = '/api/send-email'
 
@@ -15,8 +15,8 @@ const { handleSubmit, resetForm } = useForm({
   validationSchema: form,
   initialValues: {
     email: '',
-    reason: false,
     subject: '',
+    reason: '',
     name: '',
     message: '',
     terms: false,
@@ -27,7 +27,6 @@ const handleReset = () => {
   resetForm({
     values: {
       email: '',
-      reason: true,
       subject: '',
       name: '',
       message: '',
@@ -37,51 +36,40 @@ const handleReset = () => {
 }
 const onSubmit = handleSubmit(async (values) => {
   try {
-    // await $fetch('/api/auth', { method: 'GET' })
+    statusModal.value = { visible: true, status: 'loading' }
+    emit('update-status-modal', statusModal.value)
+
+    const sanitizedForm = await sanitizeObject(values, ['terms', 'submit'])
+
+    const data = await $fetch<AuthResponseData>(SEND_EMAIL_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: sanitizedForm,
+    })
+
+    if (data) {
+      statusModal.value = {
+        visible: true,
+        status: 'success',
+        successMessage: 'Your message has been sent and I\'ll reply as soon as possible.',
+        successTitle: 'Success',
+      }
+    }
+
+    emit('update-status-modal', statusModal.value)
+  }
+  catch (error) {
     statusModal.value = {
       visible: true,
-      status: 'loading',
+      status: 'error',
+      errorMessage: 'Sorry, but an error has occurred. Could you please try again?',
+      errorTitle: 'Error',
     }
-    emit('formSend', statusModal.value)
-    // Traitement du formulaire
-    const sanitizedForm = await sanitizeObject(values, [
-      'terms',
-      'submit',
-    ])
-    await $fetch<AuthResponseData>(
-      SEND_EMAIL_URL,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: sanitizedForm,
-      })
-      .then((data) => {
-        if (data) {
-          statusModal.value = {
-            visible: true,
-            status: 'success',
-            successMessage: 'Votre message a bien été envoyé, j\'y répondrai très rapidement',
-            successTitle: 'Succès',
-          }
-        }
-        emit('formSend', statusModal.value)
-      })
-      .catch((error) => {
-        if (error) {
-          statusModal.value = {
-            visible: true,
-            status: 'error',
-            errorMessage: 'Désolé mais une erreur s\'est produite, pourriez vous réessayer ?',
-            errorTitle: 'Erreur',
-          }
-        }
-        emit('formSend', statusModal.value)
-      })
-    handleReset()
+    emit('update-status-modal', statusModal.value)
+    console.error(error.message)
   }
-  catch
-  (error) {
-    console.error(error)
+  finally {
+    handleReset()
   }
 })
 </script>
@@ -104,9 +92,16 @@ const onSubmit = handleSubmit(async (values) => {
 </template>
 
 <style scoped>
+.form-container {
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+}
+
 form {
   border: 1px solid #ddd;
   border-radius: 4px;
+  background: white;
 }
 
 .form-group {
@@ -114,8 +109,5 @@ form {
   padding-bottom: 2rem;
   display: flex;
   flex-direction: column;
-}
-.form-container {
-  position: relative;
 }
 </style>

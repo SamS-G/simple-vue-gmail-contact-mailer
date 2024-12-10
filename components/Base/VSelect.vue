@@ -1,96 +1,186 @@
 <script setup lang="ts">
-import { defineProps } from 'vue'
+import { defineProps, ref, computed } from 'vue'
 import { useField } from 'vee-validate'
-import VOption from '@/components/Base/VOption.vue'
-import type { SelectProps } from '~/interfaces/form-component'
 import { form as validationSchemas } from '~/server/schema/form'
+import type { SelectProps } from '~/interfaces/form-component'
 
 const props = defineProps<SelectProps>()
 
-const { meta, errorMessage, handleBlur, handleChange, value } = useField(
+// Opens/closes options menu
+const isOpen = ref(false)
+
+// Récupération des données de validation depuis VeeValidate
+const { meta, errorMessage, handleChange, value } = useField(
   () => props.select.name,
   validationSchemas,
   {
     validateOnMount: false,
-    validateOnValueUpdate: false,
+    validateOnValueUpdate: true,
+  },
+)
 
-  })
-const validationListeners = {
-  blur: (e: Event) => handleBlur(e, true),
-  change: handleChange,
-  input: (e: Event) => handleChange(e, !!errorMessage.value),
-}
+// Selected value (synchronized with validation system)
+const selectedValue = computed({
+  get: () => value.value,
+  set: (newValue: string) => {
+    handleChange(newValue) // Informs VeeValidate of the change
+    value.value = newValue // Updates the linked value
+    isOpen.value = false // Close menu
+  },
+})
+
+// Placeholder or selected value to display
+const displayValue = computed(() => {
+  return selectedValue.value || props.select.placeholder
+})
 </script>
 
 <template>
   <div
-    :id="props.select.id"
     class="select-wrapper"
   >
     <!-- Select label -->
     <label>{{ props.select.label }}</label>
     <span
-      v-if="meta.valid && props.select.type !== 'submit'"
-      class="is-valid"
+      v-if="meta.valid"
+      class="isValid"
     ><font-awesome
       :icon="['fas', 'check']"
-      size="ll"
+      size="l"
     /></span>
-    <VOption
-      :reset="value as boolean"
-      :class="{ error: errorMessage }"
-      :options="props.select.options"
-      :placeholder="props.select.placeholder"
-      v-on="validationListeners"
-      @update:model-value="handleChange"
-    />
-    <!-- Valid field error -->
-    <p
-      v-if="errorMessage"
-      class="error-message"
-    >
-      <small
-        v-if="errorMessage"
-        class="form-text text-danger"
+    <div class="select-container">
+      <!-- Sélect -->
+      <div
+        class="select-display form-control"
+        :class="{ open: isOpen, error: errorMessage }"
+        @click="isOpen = !isOpen"
       >
-        {{ errorMessage }}
-      </small>
-    </p>
+        <span class="display-text">{{ displayValue }}</span>
+        <span class="arrow">&#9662;</span>
+      </div>
+      <!-- Transition des options -->
+      <Transition name="slide-right-left">
+        <ul
+          v-if="isOpen"
+          class="options-list"
+          @blur="isOpen = false"
+        >
+          <li
+            v-for="(option, i) in props.select.options"
+            :key="i"
+            class="option-item"
+            :class="{ selected: option.value === selectedValue }"
+            @click="selectedValue = option.value"
+          >
+            {{ option.label }}
+          </li>
+        </ul>
+      </Transition>
+
+      <!-- Error message -->
+      <p
+        v-if="errorMessage"
+        class="error-message"
+      >
+        <small class="form-text text-danger">{{ errorMessage }}</small>
+      </p>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .select-wrapper {
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   width: max-content;
   position: relative;
-  display: inline-block;
+  overflow: visible;
+}
+.select-wrapper label {
   padding-left: 2rem;
   padding-right: 2rem;
-  min-height: 10vh;
+  font-weight: bolder;
+  display: block;
 }
-.select-wrapper.is-open {
-  border-color: #666;
+.select-container {
+  padding-left: 2rem;
+  padding-right: 2rem;
+  width: max-content;
+  position: relative;
+  margin-top: 0.5vh;
+
 }
-.select-wrapper .is-valid {
-  position: absolute;
-  left: 0.3vw;
-  top: 40%;
-  transform: translateY(-50%);
+.select-display {
+  border-radius: 4px;
   cursor: pointer;
+  background: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
-.error-message {
+.select-display.open {
+  border-color: #007bff;
+}
+.select-display.error {
   border-color: red;
 }
-.is-valid svg {
+.arrow {
+  font-size: 0.8rem;
+  color: #888;
+  margin-left: 1rem;
+  transition: transform 0.3s;
+}
+.select-display.open .arrow {
+  transform: rotate(180deg);
+}
+.options-list {
+  position: absolute;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: none; /* Supprime toute limitation de hauteur */
+  overflow: visible;
+  z-index: 1000;
+  width: calc(100% - 4rem); /* 100% minus 2rem left and 2rem right */
+  left: 2rem; /* Aligned with start of padding */
+  right: 2rem; /* Aligned with end of padding */
+}
+.option-item {
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+.option-item:hover {
+  background-color: #e0e0e0;
+}
+.option-item.selected {
+  background-color: #007bff;
+  color: white;
+}
+.isValid{
   color: #28a745;
   filter: none;
 }
-p {
-  margin: 0;
+.select-wrapper .isValid {
+  position: absolute; /* Positionnement relatif à la .container */
+  top: 50%; /* Aligne verticalement au centre de la .box */
+  transform: translateY(-50%); /* Centre parfaitement le texte */
+  padding-left: 0.5vw;
 }
-.select-wrapper label {
-  font-weight: bolder;
+/* Transition from right to left */
+.slide-right-left-enter-active,
+.slide-right-left-leave-active {
+  transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+}
+.slide-right-left-enter-from,
+.slide-right-left-leave-to {
+  transform: translateX(100%);
+  opacity: 0;
+}
+.slide-right-left-enter-to,
+.slide-right-left-leave-from {
+  transform: translateX(0);
+  opacity: 1;
 }
 </style>

@@ -1,3 +1,4 @@
+import type { Logger } from 'pino'
 import type { TokenManagerService } from '~/server/services/token-manager.service'
 import type { GmailApiService } from '~/server/services/gmail.api.service'
 import type { GmailService } from '~/server/services/gmail.service'
@@ -16,6 +17,8 @@ export interface AppContainerConfig {
 export interface Awilix {
   // Configuration
   config: AppContainerConfig
+  // Logger
+  logger: Logger
   // Services (Singleton)
   tokenManagerService: TokenManagerService
   gmailApiService: GmailApiService

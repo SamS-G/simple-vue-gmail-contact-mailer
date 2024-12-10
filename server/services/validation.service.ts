@@ -22,7 +22,7 @@ export class ValidationService implements IValidationService {
           err.errors.join(', '),
         )
       }
-      throw err // Relancer toute autre erreur non liée à Yup
+      throw err // Throws any other error not related to Yup
     }
   }
 
@@ -39,7 +39,8 @@ export class ValidationService implements IValidationService {
    * @template T - The expected type of the object to be validated.
    * @param obj - The object to be validated (unknown type).
    * @param schema - The Zod schema, which defines the validation rules for type T.
-   * @returns {boolean} - Returns `success: true + obj` if the object is valid and conforms to the schema, otherwise `sucess: false + zod errors`.
+   * @returns {boolean} - Returns `success: true + obj` if the object is valid and conforms to the schema,
+   * otherwise `success: false + zod errors`.
    */
   validateType<T>(obj: unknown, schema: z.ZodType<T, z.ZodTypeDef, T>): {
     success: true

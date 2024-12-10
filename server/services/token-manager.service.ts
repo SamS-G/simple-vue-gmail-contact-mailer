@@ -21,11 +21,16 @@ export class TokenManagerService implements ITokenManagerService {
   }
 
   /**
-   * Récupère le token stocké dans le fichier JSON
+   * Retrieves token stored in JSON file
    * @private
    */
-  private async getStoredCredentials() {
-    const tokenFile = await loadFile(this.config.private.tokenStorage)
+  private async getStoredCredentials(): Promise<StoredGoogleCredentials> {
+    const tokenStorage = this.config.private.tokenStorage
+
+    if (!tokenStorage) {
+      throw new GetStoredCredentialsError('No token config data are not provided', { tokenStorage: tokenStorage })
+    }
+    const tokenFile = await loadFile<StoredGoogleCredentials>(tokenStorage)
 
     if (!tokenFile) {
       throw new GetStoredCredentialsError('No token provided', { tokenFile: tokenFile })
@@ -34,8 +39,8 @@ export class TokenManagerService implements ITokenManagerService {
   }
 
   /**
-   * Vérifie si le token doit être actualisé
-   * @param expiryDate Date d'expiration du token
+   * Checks whether the token needs updating
+   * @param expiryDate Token expiry date
    * @private
    */
   private mustRefreshCredentials(expiryDate: number): boolean {
@@ -87,7 +92,7 @@ export class TokenManagerService implements ITokenManagerService {
   }
 
   /**
-   * Retourne un token d'accès valide
+   * Returns a valid access token
    */
   async getCredentialsFromStorage(): Promise<string> {
     try {

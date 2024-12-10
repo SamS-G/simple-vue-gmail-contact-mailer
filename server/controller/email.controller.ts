@@ -1,4 +1,5 @@
 import type { H3Event } from 'h3'
+import type { Logger } from 'pino'
 import type { ApplicationError } from '~/server/errors/custom-errors'
 import { NoAccessTokenError } from '~/server/errors/custom-errors'
 import type {
@@ -13,6 +14,13 @@ export class EmailController {
     private tokenManagerService: ITokenManagerService,
   ) {}
 
+  /**
+   * 1- Retrieve stored token / renew if necessary
+   * 2- Create email template
+   * 3- Send email.
+   * @param event
+   * @return object
+   */
   async sendingWithGmail(event: H3Event) {
     try {
       const formData = await readBody(event)

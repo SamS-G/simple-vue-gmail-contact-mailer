@@ -15,7 +15,7 @@ const { meta, errorMessage, handleBlur, handleChange, value } = useField(
   })
 /**
  * Checks the field once the user moves on to the next one,
- * then performs a real-time validate when the user corrects
+ * then performs a real-time validate when the user corrects.
  */
 const validationListeners = {
   blur: (e: Event) => {
@@ -33,8 +33,11 @@ const validationListeners = {
 
 <template>
   <div
-    class="input-wrapper"
-    :class="{ checkbox: props.input.type === 'checkbox' }"
+    :class="{
+      'input-wrapper-checkbox': props.input.type === 'checkbox',
+      'input-wrapper-text-area': props.input.type === 'textarea',
+      'input-wrapper': props.input.type !== 'checkbox' && props.input.type !== 'textarea',
+    }"
   >
     <!-- Input and text area label -->
     <label :for="props.input.id">{{ input.label }}</label>
@@ -78,7 +81,7 @@ const validationListeners = {
       <!-- Field is valid icon -->
       <span
         v-if="meta.valid && props.input.type !== 'submit'"
-        :class="props.input.type === 'checkbox' || props.input.type === 'radio' ? 'isValidCheck' : 'isValidInput'"
+        :class="['checkbox', 'radio'].includes(props.input.type) ? 'isValidCheck' : 'isValidInput'"
       ><font-awesome
         :icon="['fas', 'check']"
         size="l"
@@ -119,9 +122,28 @@ const validationListeners = {
 </template>
 
 <style scoped>
-.checkbox input {
+.checkbox .input-container {
   margin-right: 1rem;
   border-color: dimgrey;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 10px;
+}
+.form-check-input {
+  grid-column: 1;
+  grid-row: 1;
+  border: 1px solid dimgrey;
+}
+.checkbox-label {
+  grid-column: 2;
+  grid-row: 1;
+  margin-left: 1rem;
+}
+p {
+  grid-column: 1 / span 2;
+  grid-row: 2;
 }
 .btn-sm {
   width: max-content;
@@ -136,33 +158,29 @@ const validationListeners = {
 }
 .input-container, .text-area-container {
   position: relative;
-  display: inline-block;
+  align-items: center;
   width: 100%;
   padding-left: 2rem;
   padding-right: 2rem;
-  min-height: 9vh;
+  margin-top: 0.5vh;
 }
-.input-wrapper .isValidCheck,
-.input-wrapper .isValidTextA,
-.input-wrapper .isValidInput {
+.input-container .isValidCheck,
+.text-area-container .isValidTextA,
+.input-container .isValidInput {
   position: absolute;
-  left: 0.4vw;
+  left: 0;
+  top: 50%;
   transform: translateY(-50%);
-  cursor: pointer;
+  padding-left: 0.5vw;
 }
-.input-wrapper .isValidCheck {
-  top: 16%;
+.input-wrapper {
+  position: relative;
 }
-.input-wrapper .isValidInput {
-  top: 25%;
-}
-.input-wrapper .isValidTextA {
-  top: 5%;
-}
-.input-wrapper label {
+.input-wrapper label, .input-wrapper-text-area label {
   padding-left: 2rem;
   padding-right: 2rem;
   font-weight: bolder;
+  display: block;
 }
 .checkbox-label {
   padding: 0!important;

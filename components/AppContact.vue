@@ -6,26 +6,26 @@ import VInput from '@/components/Base/VInput.vue'
 import VModalStatus from '~/components/Base/VModalStatus.vue'
 import type { ModalStatus } from '~/server/interfaces/modal-status'
 // Your data represent yours fields order / content
-const data = ref({
+const fieldsData = ref({
   select: {
     id: 'reason',
     name: 'reason',
     type: 'select',
-    placeholder: 'Veuillez sélectionner le motif',
-    label: 'Motif *',
+    placeholder: 'Please select the reason',
+    label: 'Reason *',
 
     options: [
       {
-        label: 'Question commercial',
-        value: 'Commerce',
+        label: 'Sales',
+        value: 'sales',
       },
       {
-        label: 'Question après-vente',
-        value: 'Après-vente',
+        label: 'After-sales',
+        value: 'after-sales',
       },
       {
-        label: 'Autre',
-        value: 'Autre',
+        label: 'Other',
+        value: 'other',
       },
     ],
   },
@@ -35,31 +35,31 @@ const data = ref({
     {
       id: 'subject',
       name: 'subject',
-      label: 'Sujet *',
-      placeholder: 'Entrez votre sujet',
+      label: 'Subject *',
+      placeholder: 'Please enter your subject',
       type: 'text',
     },
     {
       id: 'name',
       name: 'name',
-      label: 'Nom et prénom *',
-      placeholder: 'Entrez votre nom et prénom',
+      label: 'First and last name *',
+      placeholder: 'Enter your first and last name',
       type: 'text',
     },
     {
       id: 'email',
       name: 'email',
       label: 'Email *',
-      placeholder: 'Entrez votre adresse email',
+      placeholder: 'Enter your email',
       type: 'email',
     },
     // textarea
     {
       id: 'message',
       name: 'message',
-      placeholder: 'Votre message *',
+      placeholder: 'Your message *',
       rows: '10',
-      label: 'Votre message *',
+      label: 'You message *',
       type: 'textarea',
     },
     // checkbox
@@ -68,7 +68,7 @@ const data = ref({
       name: 'terms',
       type: 'checkbox',
       checkboxLabel:
-        'J\'accepte que mes coordonnées soient collectées et utilisées pour être recontacté.',
+        'I accept the general conditions',
       options: {
         excludeFromData: true,
       },
@@ -78,17 +78,17 @@ const data = ref({
       id: 'submit-button',
       name: 'submit',
       type: 'submit',
-      value: 'Envoyer',
+      value: 'Submit',
     },
   ],
 })
-const modalValues = ref<ModalStatus>({ visible: false })
-const modalStatusEmailSent = (val: ModalStatus) => {
-  modalValues.value = val
-  setTimeout(modalStatusClear, 5000) // Remove after 5s
+const modalData = ref<ModalStatus>({ visible: false })
+const statusModalState = (val: ModalStatus) => {
+  modalData.value = val
+  setTimeout(clearModalStatus, 5000) // Remove after 5s
 }
-const modalStatusClear = () => {
-  modalValues.value.visible = false
+const clearModalStatus = () => {
+  modalData.value.visible = false
 }
 </script>
 
@@ -105,28 +105,27 @@ const modalStatusClear = () => {
           <font-awesome :icon="['fa', 'address-card']" />
         </h3>
         <p>
-          Un projet commence par une rencontre. Je serai ravi de pouvoir faire
-          votre connaissance, à très vite !
+          Hello, keyboard adventurer! Got a question, problem or just want to drop us a line? Fill in this form.
+          We'll get back to you as quickly as if we had an unlimited coffee machine.
         </p>
       </div>
       <div class="container mt-5">
         <div class="contact-form">
           <h3 class="text-center">
-            <span class="line-behind">Formulaire de contact</span>
+            <span class="line-behind">Contact form</span>
           </h3>
 
           <VForm
-            @form-send="modalStatusEmailSent"
+            @update-status-modal="statusModalState"
           >
-            <template #select="errors">
+            <template #select>
               <VSelect
-                :select="data.select"
-                :errors="errors"
+                :select="fieldsData.select"
               />
             </template>
-            <template #input="errors">
+            <template #input>
               <VInput
-                v-for="(input, i) in data.inputs"
+                v-for="(input, i) in fieldsData.inputs"
                 :key="i"
                 :input="input"
                 :validate="true"
@@ -135,18 +134,18 @@ const modalStatusClear = () => {
             </template>
             <template #modal>
               <VModalStatus
-                :visible="modalValues.visible"
-                :status="modalValues.status"
-                :success-message="modalValues.successMessage"
-                :error-message="modalValues.errorMessage"
-                :success-title="modalValues.successTitle"
-                :error-title="modalValues.errorTitle"
-                @close="modalValues.visible=false"
+                :visible="modalData.visible"
+                :status="modalData.status"
+                :success-message="modalData.successMessage"
+                :error-message="modalData.errorMessage"
+                :success-title="modalData.successTitle"
+                :error-title="modalData.errorTitle"
+                @close="modalData.visible = false"
               />
             </template>
           </VForm>
           <p class="my-3 mx-3">
-            <strong>*</strong> Ces champs sont requis.
+            <strong>*</strong> These fields are required.
           </p>
         </div>
       </div>

@@ -1,5 +1,5 @@
 /**
- * Supprime les propriétés définies dans le tableau updates
+ * Deletes properties defined in the updates table
  * @param originalObject
  * @param updates
  */
@@ -7,7 +7,7 @@ export const sanitizeObject = async <T extends object>(originalObject: T, update
   // Check object before sanitize
   await hasRequiredProperty(originalObject, updates)
 
-  // Création d'une copie et suppression des propriétés
+  // Creating a copy and deleting properties
   const updatedObject = { ...originalObject }
 
   for (const key of updates) {
@@ -18,7 +18,7 @@ export const sanitizeObject = async <T extends object>(originalObject: T, update
 }
 
 /**
- * Vérifie si l'objet contient toutes les propriétés attendues avec des valeurs définies
+ * Checks whether the object contains all expected properties with defined values.
  * @param obj
  * @param requiredProperties
  * @param valueMode

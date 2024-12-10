@@ -13,6 +13,7 @@ export default defineNuxtConfig({
       sendEmailTo: process.env.SEND_EMAIL_TO,
       templates: process.env.TEMPLATES,
       tokenStorage: process.env.TOKEN_LOCAL,
+      initialCredentials: process.env.INITIAL_CREDENTIALS,
       log: process.env.LOG,
     },
     rootDir: process.cwd(),
