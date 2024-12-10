@@ -41,7 +41,6 @@ export default defineNitroPlugin((nitroApp) => {
       try {
         // Ensure logger exists in the request context
         if (!event.context.logger) {
-          console.error('Logger not found in the request context.') // Debugging
           throw new Error('Logger not found in the request context.')
         }
 
@@ -53,7 +52,6 @@ export default defineNitroPlugin((nitroApp) => {
         })
 
         event.context.container = scopedContainer
-        console.log('Scoped container created and logger registered.') // Debug log
       }
       catch (error) {
         console.error('Error creating container scope: ', error)
