@@ -5,8 +5,6 @@ import { pathResolver } from '../helpers/path.helper'
 export default defineNitroPlugin((nitroApp) => {
   const config = useRuntimeConfig()
   const logFilePath = pathResolver(config.private?.log, true)
-
-  // Vérifier si l'environnement est en production
   const isProduction = process.env.NODE_ENV === 'production'
 
   // Créer l'instance de Pino
@@ -30,7 +28,7 @@ export default defineNitroPlugin((nitroApp) => {
           },
         },
     base: {
-      app: 'webconceptions',
+      app: 'myApp',
       environment: process.env.NODE_ENV || 'development',
     },
   })
