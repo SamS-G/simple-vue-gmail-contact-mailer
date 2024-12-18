@@ -100,7 +100,6 @@ export class TokenManagerService implements ITokenManagerService {
   async getTokensFromStorage(): Promise<string> {
     try {
       const tokens = await this.getStoredTokens()
-      console.error(tokens)
       // Check property exist, not null or empty
       const validatedTokens = this.validationService.validateType<StoredGoogleTokens>(tokens, storedTokensSchema)
 
