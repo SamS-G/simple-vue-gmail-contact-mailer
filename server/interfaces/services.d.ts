@@ -1,4 +1,4 @@
-import type { Credentials, OAuth2Client } from 'google-auth-library'
+import type { Credentials } from 'google-auth-library'
 import type { H3Error, H3Event } from 'h3'
 import type { Schema } from 'yup'
 import type { z, ZodIssue } from 'zod'
@@ -24,9 +24,7 @@ export interface IValidationService {
   compareDates(tokenExpiration: number): boolean
 }
 export interface IGmailApiService {
-  newAuth(): void
   getNewCredentials(refreshToken: string): Promise<Credentials>
-  getAuth(): OAuth2Client
   send(encodedEmail: string, access_token: string): Promise<{ success: boolean, message: string }>
 }
 export interface IErrorHandlerService {

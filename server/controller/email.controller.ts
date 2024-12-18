@@ -1,5 +1,4 @@
 import type { H3Event } from 'h3'
-import type { Logger } from 'pino'
 import type { ApplicationError } from '~/server/errors/custom-errors'
 import { NoAccessTokenError } from '~/server/errors/custom-errors'
 import type {

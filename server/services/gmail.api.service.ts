@@ -2,34 +2,34 @@ import type { RuntimeConfig } from 'nuxt/schema'
 import { OAuth2Client } from 'google-auth-library'
 import { google } from 'googleapis'
 
+import type { Logger } from 'pino'
 import type { IGmailApiService } from '~/server/interfaces/services'
 import {
-  GetCurrentAuthError,
-  ApiSendEmailError, GetNewCredentialsError, InitializeGmailError, OAuthInitializationError,
+  ApiSendEmailError, ApplicationError, GetNewCredentialsError, InitializeGmailError, OAuthInitializationError,
 } from '~/server/errors/custom-errors'
 
 export class GmailApiService implements IGmailApiService {
-  private oauth2: OAuth2Client | undefined
+  private auth: OAuth2Client | undefined
   private config: RuntimeConfig
 
-  constructor() {
+  constructor(private logger: Logger) {
     this.config = useRuntimeConfig()
   }
 
-  private _ensureAuthInitialized(): OAuth2Client {
-    if (!this.oauth2) {
+  private initializeAuth(): OAuth2Client {
+    if (!this.auth) {
       this.newAuth()
     }
-    return this.oauth2!
+    return <OAuth2Client> this.auth
   }
 
   /**
    * Prepare the OAuthClient with credentials from .env and
    * generated from Google Cloud
    */
-  newAuth() {
+  private newAuth() {
     try {
-      this.oauth2 = new OAuth2Client(
+      this.auth = new OAuth2Client(
         this.config.private.clientID,
         this.config.private.clientSecret,
         this.config.private.redirectUri,
@@ -44,11 +44,11 @@ export class GmailApiService implements IGmailApiService {
    * Before send email
    * @private
    */
-  async initializeGmail() {
-    if (this.oauth2) {
+  private async initializeGmail() {
+    if (this.auth) {
       return google.gmail({
         version: 'v1',
-        auth: this.oauth2,
+        auth: this.auth,
       })
     }
     throw new InitializeGmailError('OAuth2Client is not initialized')
@@ -59,7 +59,7 @@ export class GmailApiService implements IGmailApiService {
    * used to receive the refresh_token
    */
   async getAuthUrl(): Promise<string> {
-    const auth = this._ensureAuthInitialized()
+    const auth = this.initializeAuth()
     return auth.generateAuthUrl({
       access_type: 'offline',
       prompt: 'consent',
@@ -74,7 +74,7 @@ export class GmailApiService implements IGmailApiService {
   async getFirstAccessToken(code: string) {
     try {
       // If first connection with code received by getUrl
-      const auth = this._ensureAuthInitialized()
+      const auth = this.initializeAuth()
       const { tokens } = await auth.getToken(code)
       console.log('CREDENTIALS =>', tokens)
       return tokens
@@ -90,7 +90,7 @@ export class GmailApiService implements IGmailApiService {
    * @param refreshToken
    */
   async getNewCredentials(refreshToken: string) {
-    const auth = this._ensureAuthInitialized()
+    const auth = this.initializeAuth()
 
     // Definition of identification information
     auth.setCredentials({ refresh_token: refreshToken })
@@ -110,37 +110,40 @@ export class GmailApiService implements IGmailApiService {
   }
 
   /**
-   * Return the current OAuth client
-   */
-  getAuth() {
-    if (this.oauth2) {
-      return this.oauth2
-    }
-    throw new GetCurrentAuthError('OAuth2 client is not defined !')
-  }
-
-  /**
    * Send the email by the Google Gmail API
    * @param encodedEmail
    * @param access_token
    * @return
    */
   async send(encodedEmail: string, access_token: string): Promise<{ success: boolean, message: string }> {
-    const auth = this._ensureAuthInitialized()
-
-    auth.setCredentials({ access_token })
-
-    const gmail = await this.initializeGmail()
-
     try {
-      const response = await gmail.users.messages.send({
+      const auth = this.initializeAuth()
+
+      auth.setCredentials({ access_token })
+
+      const gmail = await this.initializeGmail()
+
+      return await gmail.users.messages.send({
         userId: 'me',
         requestBody: { raw: encodedEmail },
       })
-      return { success: true, message: `Email successfully sent, Date => ${response.data.internalDate}` }
+        .then((result) => {
+          const message = `Email successfully sent, Date => ${result.data.internalDate}`
+
+          this.logger.info(message)
+          return { success: true, message: message }
+        })
+        .catch((error) => {
+          throw new ApiSendEmailError(`Unable to send email : ${error.message}`, error)
+        })
     }
     catch (err) {
-      throw new ApiSendEmailError(`API returned an error: ${(err as Error).message}`, { error: err })
+      if (err instanceof ApplicationError) {
+        throw err
+      }
+      else {
+        throw new ApiSendEmailError(`Can't send email, exception generate before request API: ${(err as Error).message}`, { error: err })
+      }
     }
   }
 }
