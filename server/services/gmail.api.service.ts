@@ -5,22 +5,22 @@ import { google } from 'googleapis'
 import type { Logger } from 'pino'
 import type { IGmailApiService } from '~/server/interfaces/services'
 import {
-  ApiSendEmailError, ApplicationError, GetNewCredentialsError, InitializeGmailError, OAuthInitializationError,
+  ApiSendEmailError, ApplicationError, GetNewAccessTokenError, InitializeGmailError, OAuthInitializationError,
 } from '~/server/errors/custom-errors'
 
 export class GmailApiService implements IGmailApiService {
   private auth: OAuth2Client | undefined
-  private config: RuntimeConfig
+  private readonly config: RuntimeConfig
 
-  constructor(private logger: Logger) {
+  constructor(private readonly logger: Logger) {
     this.config = useRuntimeConfig()
   }
 
   private initializeAuth(): OAuth2Client {
     if (!this.auth) {
-      this.newAuth()
+      return this.newAuth()
     }
-    return <OAuth2Client> this.auth
+    return this.auth
   }
 
   /**
@@ -34,6 +34,7 @@ export class GmailApiService implements IGmailApiService {
         this.config.private.clientSecret,
         this.config.private.redirectUri,
       )
+      return this.auth
     }
     catch (e) {
       throw new OAuthInitializationError(`Error initializing OAuth2Client: ${(e as Error).message}`)
@@ -86,26 +87,25 @@ export class GmailApiService implements IGmailApiService {
   }
 
   /**
-   * Recovering new credentials with google-auth libraries
+   * Recovering new access_token with google-auth libraries
    * @param refreshToken
    */
-  async getNewCredentials(refreshToken: string) {
-    const auth = this.initializeAuth()
-
-    // Definition of identification information
-    auth.setCredentials({ refresh_token: refreshToken })
-
+  async getNewToken(refreshToken: string) {
     try {
-      const { credentials } = await auth.refreshAccessToken()
+      const auth = this.initializeAuth()
+      // Set identifier in the authenticate object
+      auth.setCredentials({ refresh_token: refreshToken })
 
-      if (!credentials) {
-        throw new GetNewCredentialsError('No token provided')
-      }
+      const { credentials } = await auth.refreshAccessToken() // Request send
 
       return credentials
     }
-    catch (error) {
-      throw new GetNewCredentialsError(error instanceof Error ? error.message : 'Unknown error')
+    catch (err) {
+      if (err instanceof ApplicationError) {
+        throw err
+      }
+      const error = err as Error
+      throw new GetNewAccessTokenError(error.message, { context: error })
     }
   }
 

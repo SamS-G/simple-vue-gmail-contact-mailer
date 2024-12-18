@@ -1,18 +1,15 @@
-import type { BaseEmailData } from '~/server/interfaces/base-email-data'
-
-export const baseDataModel: BaseEmailData = {
-  header: {
-    img_url: 'http://localhost:3000/pictures/logo.svg',
-    img_alt: 'MycoolCompnay',
+{
+  "header": {
+    "img_url": "http://localhost:3000/pictures/logo.svg",
+    "img_alt": "MycoolCompnay"
   },
-  email: 'mycoolcompany@cool.com',
-  address: '75000 Paris',
-  phone: '06.06.06.06.06',
-  company: {
-    name: 'CoolCompany',
+  "email": "mycoolcompany@cool.com",
+  "address": "75000 Paris",
+  "phone": "06.06.06.06.06",
+  "company": {
+    "name": "CoolCompany"
   },
-  footer: {
-    text: 'This message was sent automatically from the website mycoolcompany.com',
-  },
-  year: (new Date()).getFullYear().toString(),
+  "footer": {
+    "text": "This message was sent automatically from the website mycoolcompany.com"
+  }
 }

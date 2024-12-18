@@ -19,7 +19,6 @@ export const pathResolver = (target: string, create: boolean = false): string =>
   // Create a file / folder if create option enabled
   if (create && !fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true })
-    return filePath
   }
   return filePath
 }

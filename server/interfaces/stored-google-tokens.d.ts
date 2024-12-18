@@ -1,4 +1,4 @@
-export interface StoredGoogleCredentials {
+export interface StoredGoogleTokens {
   [key: string]: string | number | undefined
   refresh_token: string
   scope?: string | undefined

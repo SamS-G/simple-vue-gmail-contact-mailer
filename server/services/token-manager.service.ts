@@ -1,21 +1,23 @@
 import type { RuntimeConfig } from 'nuxt/schema'
-import { updateJson, loadFile } from '~/server/helpers/files.helper'
+import type { Logger } from 'pino'
+import { updateJson, loadFileContent } from '~/server/helpers/files.helper'
 import {
-  ApplicationError, GetStoredCredentialsError, InvalidCredentialsError,
+  ApplicationError, ConfigDataError, GetStoredTokensError, InvalidCredentialsError,
   RefreshCredentialsError, TokenValidityCheckError,
 } from '~/server/errors/custom-errors'
 import type { IGmailApiService, ITokenManagerService, IValidationService } from '~/server/interfaces/services'
-import type { StoredGoogleCredentials } from '~/server/interfaces/stored-google-credentials'
-import { StoredCredentialSchema } from '~/server/interfaces/zschema/stored-credential-schema'
-import { NewCredentialSchema } from '~/server/interfaces/zschema/new-credential-schema'
+import type { StoredGoogleTokens } from '~/server/interfaces/stored-google-tokens'
+import { storedTokensSchema } from '~/server/interfaces/zschema/stored-tokens.schema'
+import { NewCredentialSchema } from '~/server/interfaces/zschema/new-credential.schema'
 import type { NewGoogleCredentials } from '~/server/interfaces/new-google-credentials'
 
 export class TokenManagerService implements ITokenManagerService {
-  private config: RuntimeConfig
+  private readonly config: RuntimeConfig
 
   constructor(
-    private gmailApiService: IGmailApiService,
-    private validationService: IValidationService,
+    private readonly gmailApiService: IGmailApiService,
+    private readonly validationService: IValidationService,
+    private readonly logger: Logger,
   ) {
     this.config = useRuntimeConfig()
   }
@@ -24,18 +26,18 @@ export class TokenManagerService implements ITokenManagerService {
    * Retrieves token stored in JSON file
    * @private
    */
-  private async getStoredCredentials(): Promise<StoredGoogleCredentials> {
+  private async getStoredTokens(): Promise<string | StoredGoogleTokens> {
     const tokenStorage = this.config.private.tokenStorage
 
     if (!tokenStorage) {
-      throw new GetStoredCredentialsError('No token config data are not provided', { tokenStorage: tokenStorage })
+      throw new ConfigDataError('A config data missing: token_storage path', { tokenStorage: tokenStorage })
     }
-    const tokenFile = await loadFile<StoredGoogleCredentials>(tokenStorage)
+    const tokensFromStorage = await loadFileContent<StoredGoogleTokens>(tokenStorage, true)
 
-    if (!tokenFile) {
-      throw new GetStoredCredentialsError('No token provided', { tokenFile: tokenFile })
+    if (!tokensFromStorage) {
+      throw new GetStoredTokensError('No token provided', { fileContent: tokensFromStorage })
     }
-    return tokenFile
+    return tokensFromStorage
   }
 
   /**
@@ -47,11 +49,8 @@ export class TokenManagerService implements ITokenManagerService {
     try {
       return this.validationService.compareDates(expiryDate)
     }
-    catch (error) {
-      if (error instanceof ApplicationError) {
-        throw error
-      }
-      throw new TokenValidityCheckError('Unable to check token validity date', error)
+    catch (err) {
+      throw new TokenValidityCheckError('Unable to check token validity date', err.message)
     }
   }
 
@@ -60,10 +59,10 @@ export class TokenManagerService implements ITokenManagerService {
    * @param refreshToken
    * @private
    */
-  private async refreshCredentials(refreshToken: string): Promise<string> {
+  private async refreshAccessToken(refreshToken: string): Promise<string> {
     try {
       // Obtenir de nouveaux identifiants
-      const newCredentials = await this.gmailApiService.getNewCredentials(refreshToken)
+      const newCredentials = await this.gmailApiService.getNewToken(refreshToken)
       // Validate credentials datas from Google Auth API
       const validatedCredentials = this.validationService.validateType<NewGoogleCredentials>(newCredentials, NewCredentialSchema)
       if (!validatedCredentials.success) {
@@ -74,7 +73,11 @@ export class TokenManagerService implements ITokenManagerService {
       }
 
       // Update storage file with new credentials
-      await updateJson(this.config.private.tokenStorage, data => ({
+      const tokenStorage = this.config.private.tokenStorage
+      if (!tokenStorage) {
+        throw new ConfigDataError('A config data missing: token_storage path', { tokenStorage: tokenStorage })
+      }
+      await updateJson(tokenStorage, data => ({
         ...data,
         access_token: newCredentials.access_token,
         refresh_token: newCredentials.refresh_token ?? data.refresh_token,
@@ -92,23 +95,26 @@ export class TokenManagerService implements ITokenManagerService {
   }
 
   /**
-   * Returns a valid access token
+   * Returns a valid access_token
    */
-  async getCredentialsFromStorage(): Promise<string> {
+  async getTokensFromStorage(): Promise<string> {
     try {
-      const tokens = await this.getStoredCredentials()
-      const validatedCredentials = this.validationService.validateType<StoredGoogleCredentials>(tokens, StoredCredentialSchema)
+      const tokens = await this.getStoredTokens()
+      console.error(tokens)
+      // Check property exist, not null or empty
+      const validatedTokens = this.validationService.validateType<StoredGoogleTokens>(tokens, storedTokensSchema)
 
-      if (validatedCredentials.type === 'error') {
-        throw new GetStoredCredentialsError(
+      if (!validatedTokens.success) {
+        throw new GetStoredTokensError(
           'The content of token is not compliant',
-          { zodError: validatedCredentials.errors },
+          { zodError: validatedTokens.errors },
         )
       }
-      const { expiry_date, refresh_token, access_token } = validatedCredentials.data
+      const { expiry_date, refresh_token, access_token } = validatedTokens.data
 
       if (this.mustRefreshCredentials(expiry_date)) {
-        return await this.refreshCredentials(refresh_token)
+        this.logger.info('Token expired, needs refresh')
+        return await this.refreshAccessToken(refresh_token)
       }
       return access_token
     }
@@ -116,7 +122,7 @@ export class TokenManagerService implements ITokenManagerService {
       if (error instanceof ApplicationError) {
         throw error
       }
-      throw new GetStoredCredentialsError('Error retrieving token from storage', error)
+      throw new GetStoredTokensError('Error retrieving token from storage', error)
     }
   }
 }

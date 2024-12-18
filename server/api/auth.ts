@@ -1,6 +1,6 @@
 import { defineEventHandler } from 'h3'
-import type { StoredGoogleCredentials } from '../interfaces/stored-google-credentials'
-import { loadFile, updateJson } from '~/server/helpers/files.helper'
+import type { StoredGoogleTokens } from '../interfaces/stored-google-tokens'
+import { loadFileContent, updateJson } from '~/server/helpers/files.helper'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -9,34 +9,29 @@ export default defineEventHandler(async (event) => {
       throw new Error('Method not allowed')
     }
 
-    const { container, config } = event.context
-    const { private: { initialCredentials, tokenStorage } } = config
-
-    // Validate required dependencies
-    if (!container) {
-      return { success: false, error: 'Container not initialized' }
-    }
-    if (!initialCredentials) {
-      return { success: false, error: 'Initial credentials configuration missing' }
-    }
-
+    const { container } = event.context
+    const config = (useRuntimeConfig()).private
+    const { initializeCredentials, tokenStorage } = config
     const apiGmailService = container.resolve('gmailApiService')
-    const initializeFile = await loadFile<StoredGoogleCredentials>(initialCredentials)
+    const initializeFile = await loadFileContent<StoredGoogleTokens>(initializeCredentials, true)
 
     // Generate auth URL if not existing
-    if (!initializeFile.auth_url) {
+    if (!initializeFile.code) {
       const url = await apiGmailService.getAuthUrl()
+
       if (url) {
-        await updateJson(initialCredentials, data => ({
+        await updateJson(initializeCredentials, data => ({
           ...data,
           auth_url: url,
         }))
       }
+      return { success: true, type: 'URL' }
     }
 
     // Get access token if code present
-    if (initializeFile.code) {
+    if (!initializeFile.code) {
       const credentials = await apiGmailService.getFirstAccessToken(initializeFile.code)
+
       await updateJson(tokenStorage, () => ({
         access_token: credentials.access_token,
         refresh_token: credentials.refresh_token,
@@ -44,12 +39,14 @@ export default defineEventHandler(async (event) => {
         token_type: credentials.token_type,
         scope: credentials.scope,
       }), true)
-    }
+      // Reset JSON
+      await updateJson(initializeCredentials, () => ({ auth_url: '', code: '' }))
 
-    return { success: true }
+      return { success: true, type: 'token' }
+    }
   }
   catch (error) {
-    console.error('Gmail authentication error:', error.message)
+    console.error('Gmail authentication error:', error.message, JSON.stringify(error))
     return { success: false, error: error.message }
   }
 })

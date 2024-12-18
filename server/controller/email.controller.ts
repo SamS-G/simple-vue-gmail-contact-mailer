@@ -1,6 +1,5 @@
 import type { H3Event } from 'h3'
 import type { ApplicationError } from '~/server/errors/custom-errors'
-import { NoAccessTokenError } from '~/server/errors/custom-errors'
 import type {
   IErrorHandlerService,
   IGmailService, ITokenManagerService,
@@ -8,9 +7,9 @@ import type {
 
 export class EmailController {
   constructor(
-    private gmailService: IGmailService,
-    private errorHandlerService: IErrorHandlerService,
-    private tokenManagerService: ITokenManagerService,
+    private readonly gmailService: IGmailService,
+    private readonly errorHandlerService: IErrorHandlerService,
+    private readonly tokenManagerService: ITokenManagerService,
   ) {}
 
   /**
@@ -23,13 +22,9 @@ export class EmailController {
   async sendingWithGmail(event: H3Event) {
     try {
       const formData = await readBody(event)
-      const accessToken = await this.tokenManagerService.getCredentialsFromStorage()
+      const tokens = await this.tokenManagerService.getTokensFromStorage()
 
-      if (!accessToken) {
-        throw new NoAccessTokenError('No access token found.', { accessToken: accessToken })
-      }
-
-      return await this.gmailService.sendGmail(formData, accessToken)
+      return await this.gmailService.sendGmail(formData, tokens)
     }
     catch (err) {
       this.errorHandlerService.handleError(event, <Error | ApplicationError>err)

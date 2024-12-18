@@ -140,6 +140,10 @@ const validationListeners = {
   grid-column: 2;
   grid-row: 1;
   margin-left: 1rem;
+  padding: 0!important;
+  font-weight: normal!important;
+  font-size: 0.87rem;
+  font-style: italic;
 }
 p {
   grid-column: 1 / span 2;
@@ -181,12 +185,6 @@ p {
   padding-right: 2rem;
   font-weight: bolder;
   display: block;
-}
-.checkbox-label {
-  padding: 0!important;
-  font-weight: normal!important;
-  font-size: 0.87rem;
-  font-style: italic;
 }
 .submit {
   min-height: 0;

@@ -2,39 +2,42 @@ import * as fs from 'node:fs'
 import path from 'node:path'
 import type { RuntimeConfig } from 'nuxt/schema'
 import Handlebars from 'handlebars'
-import { contact } from 'assets/templates/pages/data/contact'
-import type { TemplateData } from '~/server/interfaces/template-data'
-import { replaceDynamicValues } from '~/server/helpers/objects.helper'
-import { loadFile, parseJson } from '~/server/helpers/files.helper'
+import type { DynamicValuesObject } from '~/server/interfaces/dynamic-value-object'
+import { replaceDynamicValues, flattenObject } from '~/server/helpers/objects.helper'
+import { loadFileContent, parseJson } from '~/server/helpers/files.helper'
 import {
   ApplicationError,
-  CompileTemplateError, CreateEmailTemplateError,
-  CreateTemplateDataError, RegisterTemplatePartialError,
+  CompileTemplateError, ConfigDataError, CreateEmailTemplateError,
+  CreateTemplateDataError, CreateTemplateDataModel, RegisterTemplatePartialError,
 } from '~/server/errors/custom-errors'
-import { resolvePartialPaths } from '~/server/helpers/path.helper'
+import { pathResolver, resolvePartialPaths } from '~/server/helpers/path.helper'
 import type { ITemplateService } from '~/server/interfaces/services'
 import type { TemplatesConfig } from '~/server/interfaces/templates-config'
 import type { ReplacementValue } from '~/server/types/replacement-value'
+import type { BaseEmailData } from '~/server/interfaces/base-email-data'
 
 export class TemplateService implements ITemplateService {
-  private config: RuntimeConfig
+  private readonly config: RuntimeConfig
   constructor() {
     this.config = useRuntimeConfig()
   }
 
   /**
    * Formats and models e-mail
-   * @param data UniversalForm data to hydrate the template
+   * With complete custom data model or base model + custom
+   * @param data Form data to hydrate template
+   * @param dataModel
    */
-  async createTemplate(data: Record<string, ReplacementValue>): Promise<Record<string, string>> {
+  async createTemplate(data: Record<string, ReplacementValue>, dataModel: DynamicValuesObject): Promise<Record<string, string>> {
     await this.registerPartials()
 
     const templates = this.config.private.templates
     if (!templates) {
-      throw new CreateEmailTemplateError('Error when creating template, no templates path provided', { formData: data })
+      throw new ConfigDataError('Error when creating template, no templates path provided from config', { templatesPaths: templates })
     }
-    const hydratedTemplates = await this.createTemplateData(contact, data)
     const templatesConfig = parseJson<TemplatesConfig>(templates)
+    const templateDataModel = await this.createTemplateDataModel(dataModel)
+    const hydratedTemplates = await this.createTemplateData(templateDataModel, data)
 
     const message = await this.compileTemplate(
       templatesConfig.base_template,
@@ -48,13 +51,39 @@ export class TemplateService implements ITemplateService {
   }
 
   /**
+   * Create the data model used to create content
+   * @param dataModel
+   */
+  async createTemplateDataModel(dataModel: DynamicValuesObject) {
+    let baseDataModel: null | BaseEmailData | string = null
+
+    try {
+      if (this.config.private.baseDataModel) {
+        const baseFilePath = pathResolver(this.config.private.baseDataModel)
+        baseDataModel = await loadFileContent(baseFilePath, true)
+      }
+
+      return typeof baseDataModel !== 'string' && baseDataModel !== null
+        ? { ...flattenObject(baseDataModel), ...flattenObject(dataModel) } // base data model + custom model
+        : flattenObject(dataModel) // only custom model
+    }
+    catch (err) {
+      const error = <Error>err
+      throw new CreateTemplateDataModel('Can\'t create template model data with provided models', { dataModel: dataModel, error: error })
+    }
+  }
+
+  /**
    * Hydrate template with user form datas. Using placeholder replace function
    * @param template
    * @param values
    * @private
    */
-  private async createTemplateData<T>(template: TemplateData<T>, values: Record<string, ReplacementValue>): Promise<unknown> {
-    if (!(template && values) || typeof template !== 'object' || typeof values !== 'object') {
+  private async createTemplateData(template: DynamicValuesObject, values: Record<string, ReplacementValue>): Promise<unknown> {
+    if (!(template && values)
+      || typeof template !== 'object'
+      || typeof values !== 'object'
+    ) {
       throw new CreateTemplateDataError('Invalid template or dynamic data provided', { templateData: template, data: values })
     }
     return replaceDynamicValues(template, values)
@@ -83,7 +112,7 @@ export class TemplateService implements ITemplateService {
    * @returns The content of the template file as a string or exception.
    */
   private async loadTemplate(filePath: string): Promise<string> {
-    return await loadFile<string>(path.resolve(filePath))
+    return await loadFileContent<string>(path.resolve(filePath))
   }
 
   /**

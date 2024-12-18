@@ -152,6 +152,3 @@ const clearModalStatus = () => {
     </div>
   </section>
 </template>
-
-<style scoped>
-</style>

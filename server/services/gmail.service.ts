@@ -1,3 +1,4 @@
+import { contact } from 'assets/templates/pages/data/contact'
 import type {
   IEmailConfigService,
   IGmailApiService,
@@ -13,10 +14,10 @@ import type { Email } from '~/server/types/email'
 
 export class GmailService implements IGmailService {
   constructor(
-    private validationService: IValidationService,
-    private gmailApiService: IGmailApiService,
-    private templateService: ITemplateService,
-    private emailConfigService: IEmailConfigService,
+    private readonly validationService: IValidationService,
+    private readonly gmailApiService: IGmailApiService,
+    private readonly templateService: ITemplateService,
+    private readonly emailConfigService: IEmailConfigService,
   ) {}
 
   /**
@@ -24,18 +25,19 @@ export class GmailService implements IGmailService {
    * Validate content
    * Config and send the email with gmail API
    * @param formData
-   * @param access_token
+   * @param accessToken
    * @return object
    */
-  async sendGmail(formData: UniversalForm<EmailForm>, access_token: string): Promise<{ success: boolean, message: string }> {
+  async sendGmail(formData: UniversalForm<EmailForm>, accessToken: string): Promise<{ success: boolean, message: string }> {
     // Create email template
-    const email = await this.templateService.createTemplate(formData)
+    const email = await this.templateService.createTemplate(formData, contact)
+
     // Validate created email
     const emailValidate = await this.validationService.yupDataValidate(email, emailSchema) as Email
     // Create emailConfig and encode to base64
     const emailConfig = this.emailConfigService.createGmailConfig(emailValidate)
     const base64Email = encodeToBase64(emailConfig)
     // Sending email
-    return this.gmailApiService.send(base64Email, access_token)
+    return this.gmailApiService.send(base64Email, accessToken)
   }
 }

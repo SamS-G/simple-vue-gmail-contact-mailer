@@ -1,5 +1,6 @@
 import type { PlaceholderOptions } from '~/server/interfaces/placeholder-options'
 import type { ReplaceDynamicValues } from '~/server/types/replace-dynamic-values'
+import { ReplacePlaceholdersError } from '~/server/errors/custom-errors'
 
 export const replaceDynamicValues = <T extends Record<string, unknown>, U>(
   value: T,
@@ -20,15 +21,15 @@ export const replaceDynamicValues = <T extends Record<string, unknown>, U>(
     switch (true) {
       case typeof val === 'string': {
         // Replace placeholders in a string
-        return (val as string).replace(regex, (match: string, placeholder: string): string => {
+        return (val).replace(regex, (match: string, placeholder: string): string => {
           const replacement = values[placeholder]
 
           if (replacement === undefined) {
-            throw new Error(`Placeholder "${match}" not found in the value dictionary.`)
+            throw new ReplacePlaceholdersError(`Placeholder "${match}" not found in the value dictionary.`)
           }
 
           if (typeof replacement === 'object') {
-            throw new Error(`The value for the placeholder "${match}" cannot be an object.`)
+            throw new ReplacePlaceholdersError(`The value for the placeholder "${match}" cannot be an object.`)
           }
           // Ensure the replacement is always a string
           return String(replaceFunction
@@ -44,7 +45,7 @@ export const replaceDynamicValues = <T extends Record<string, unknown>, U>(
             return replacePlaceholders(item)
           }
           catch (err) {
-            throw new Error(`Error in array index ${index}: ${(err as Error).message}`)
+            throw new ReplacePlaceholdersError(`Error in array index ${index}: ${(err as Error).message}`)
           }
         })
       }
@@ -57,7 +58,7 @@ export const replaceDynamicValues = <T extends Record<string, unknown>, U>(
               return [key, replacePlaceholders(value)] as [string, unknown]
             }
             catch (err) {
-              throw new Error(`Error processing key "${key}": ${(err as Error).message}`)
+              throw new ReplacePlaceholdersError(`Error processing key "${key}": ${(err as Error).message}`)
             }
           }),
         )
@@ -70,4 +71,69 @@ export const replaceDynamicValues = <T extends Record<string, unknown>, U>(
   }
   // Transform the input object
   return replacePlaceholders(value) as T
+}
+
+/**
+ * Flattens a nested object into a single-depth object with prefixed keys reflecting the hierarchy.
+ *
+ * @template T - The type of the input object.
+ * @param obj - The object to flatten.
+ * @param prefix - The prefix for the keys (empty string by default).
+ * @returns A flattened object with string keys and allowed primitive values.
+ */
+export const flattenObject = <T extends Record<string, unknown>>(
+  obj: T,
+  prefix: string = '',
+): Record<string, string | undefined> => {
+  // Check if is authorized type (type guard)
+  const isPrimitiveValue = (
+    value: unknown,
+  ): value is string | number | boolean | null | undefined => {
+    return (
+      typeof value === 'string'
+      || typeof value === 'number'
+      || typeof value === 'boolean'
+      || value === null
+      || value === undefined
+    )
+  }
+
+  // Initialize object result
+  const result: Record<string, string | undefined> = {}
+
+  // Object key path
+  for (const key in obj) {
+    if (Object.hasOwn(obj, key)) {
+      // Generate prefixed key
+      const prefixedKey = prefix ? `${prefix}_${key}` : key // Default { prop: value } = key_ = prop_
+      const value = obj[key] // Nested object
+
+      // Check if is nested object
+      if (
+        value
+        && typeof value === 'object' // Is an object
+        && !Array.isArray(value) // Is not an array
+        && !(value instanceof Date) // Is not an instance of Date
+      ) {
+        // Appel récursif avec la clé préfixée
+        Object.assign(
+          result,
+          flattenObject(value as Record<string, unknown>, prefixedKey),
+        )
+      }
+      else if (isPrimitiveValue(value)) {
+        // Adds the primitive value to the result
+        result[prefixedKey] = value?.toString()
+      }
+      else {
+        // Ignorer les types non pris en charge
+        throw new Error(
+          `Unsupported value type for key "${prefixedKey}": ${typeof value}`,
+        )
+      }
+    }
+  }
+
+  // Retourne l'objet aplati
+  return result
 }

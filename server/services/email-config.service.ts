@@ -5,7 +5,7 @@ import type { Email } from '~/server/types/email'
 import { EmailConfigError } from '~/server/errors/custom-errors'
 
 export class EmailConfigService implements IEmailConfigService {
-  private config: RuntimeConfig
+  private readonly config: RuntimeConfig
   constructor() {
     this.config = useRuntimeConfig()
   }

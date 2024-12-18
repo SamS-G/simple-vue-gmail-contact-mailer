@@ -15,13 +15,13 @@ export class ErrorHandlerService implements IErrorHandlerService {
   private readonly logLevel: string
 
   constructor(
-    private config: ErrorHandlerConfig,
-    private logger: Logger,
+    private readonly config: ErrorHandlerConfig,
+    private readonly logger: Logger,
   ) {
     this.config = config
-    this.env = config.nodeEnv || 'development' // Determine the current environment
+    this.env = config.nodeEnv ?? 'development' // Determine the current environment
     this.isDev = this.env === 'development' // Check if it's a development environment
-    this.logLevel = config.logLevel || 'error' // Default log level is 'error'
+    this.logLevel = config.logLevel ?? 'error' // Default log level is 'error'
   }
 
   /**
@@ -55,10 +55,11 @@ export class ErrorHandlerService implements IErrorHandlerService {
 
       if (error instanceof ApplicationError) {
         // Application-specific errors
+        const errorCodePart = error.code ? `, code: ${error.code}` : ''
         return {
           ...baseErrorConfig,
           statusCode: error.statusCode ?? 500,
-          statusMessage: `${error.message}${error.code ? `, code: ${error.code}` : ''}`,
+          statusMessage: errorCodePart,
           data: error.data,
           stackTrace: error.stack,
         }
@@ -152,7 +153,7 @@ export class ErrorHandlerService implements IErrorHandlerService {
 
     // Normalize each line to show only filenames and line/column numbers
     const normalizedLines = lines.map((line) => {
-      const match = line.match(/at\s+(.+)\s+\((.+):(\d+):(\d+)\)/)
+      const match = (/at\s+(.+)\s+\((.+):(\d+):(\d+)\)/).exec(line)
       if (match) {
         const [, functionName, filename, lineNumber, columnNumber] = match
         const shortFilename = filename.split('/').pop() // Extract the file name

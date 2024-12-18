@@ -6,6 +6,7 @@ import type { ApplicationError } from '~/server/errors/custom-errors'
 import type { EmailForm } from '~/server/types/email-form'
 import type { ReplacementValue } from '~/server/types/replacement-value'
 import type { Email } from '~/server/types/email'
+import type { DynamicValuesObject } from '~/server/interfaces/dynamic-value-object'
 
 export interface IGmailService {
   sendGmail(emailForm: EmailForm, access_token: string): Promise<{ success: boolean, message: string }>
@@ -24,18 +25,18 @@ export interface IValidationService {
   compareDates(tokenExpiration: number): boolean
 }
 export interface IGmailApiService {
-  getNewCredentials(refreshToken: string): Promise<Credentials>
+  getNewToken(refreshToken: string): Promise<Credentials>
   send(encodedEmail: string, access_token: string): Promise<{ success: boolean, message: string }>
 }
 export interface IErrorHandlerService {
   handleError(event: H3Event, error: Error | ApplicationError | H3Error & { statusCode?: number, data?: never }): void
 }
 export interface ITokenManagerService {
-  getCredentialsFromStorage(): Promise<string>
+  getTokensFromStorage(): Promise<string>
 }
 export interface IEmailConfigService {
   createGmailConfig(emailForm: Email): string
 }
 export interface ITemplateService {
-  createTemplate(data: Record<string, ReplacementValue>): Promise<Record<string, string>>
+  createTemplate(data: Record<string, ReplacementValue>, dataModel: DynamicValuesObject): Promise<Record<string, string>>
 }

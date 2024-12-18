@@ -1,6 +1,6 @@
 import * as fs from 'node:fs'
 import path from 'node:path'
-import { ParseJsonError, UpdateJsonError } from '~/server/errors/custom-errors'
+import { ApplicationError, ParseJsonError, UpdateJsonError } from '~/server/errors/custom-errors'
 import { encrypt, decrypt, isFileEncrypted } from '~/server/helpers/encryption.helper'
 import { getLogger } from '~/server/plugins/00-pino-logger'
 
@@ -21,100 +21,110 @@ export const parseJson = <T>(json: string): T => {
 /**
  * Load content of a file, encrypted or not
  * @param filePath
+ * @param toObject - Option if you want return object
  */
-export const loadFile = async <T>(filePath: string): Promise<T> => {
+export const loadFileContent = async <T>(filePath: string, toObject: boolean = false): Promise<T | string> => {
   try {
-    // Reads the file as a string.
+    const logger = getLogger()
     let content = await fs.promises.readFile(path.resolve(filePath), 'utf8')
 
     if (isFileEncrypted(content)) {
       content = decrypt(content)
     }
-    // Try parsing as JSON else catch error and return content
-    try {
-      return JSON.parse(content) as T
+
+    if (toObject) {
+      try {
+        const parsed = JSON.parse(content)
+
+        // Type check after parsing.
+        if (typeof parsed === 'object' && parsed !== null) {
+          return parsed as T
+        }
+        logger?.warn(`The content of file ${filePath} is not a valid JSON object. Return of an empty object.`)
+
+        return {} as T
+      }
+      catch (err) {
+        logger?.warn(`Error parsing JSON in ${filePath}. Return of an empty object. Error: ${err.message}`)
+        return {} as T
+      }
     }
-    catch (jsonParseError) {
-      return content as unknown as T // Return raw content if not JSON
-    }
+
+    return content.trim()
   }
   catch (err) {
-    throw new Error(`Error reading file at ${filePath}: ${err instanceof Error ? err.message : String(err)}`)
+    if (err instanceof ApplicationError) {
+      throw err
+    }
+    throw new Error(`Error reading file ${filePath}: ${err.message}`)
   }
 }
 /**
- * Updates the contents of a JSON file with new values if they are not null or identical
- * @param filePath - Path to JSON file
- * @param updateFunction - Update function that takes current data and returns changes.
+ * Asynchronous function to update a JSON file
+ *
+ * @param filePath
+ * @param updateFunction
  * @param encryptData
  */
 export const updateJson = async <T extends Record<string, unknown>>(
   filePath: string,
   updateFunction: (data: T) => Partial<T>,
   encryptData: boolean = false,
-  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-): Promise<void | UpdateJsonError> => {
-  const data = await loadFile<T>(filePath)
+): Promise<void> => {
   const logger = getLogger()
 
-  if (data === undefined) {
-    if (logger) {
-      logger.error('Can\'t read json file content before update()')
-    }
-    throw new UpdateJsonError('Can\'t read json file content before update()', { data })
-  }
-
-  let updatedData: Partial<T>
   try {
-    updatedData = updateFunction(data)
-  }
-  catch (err) {
-    throw new UpdateJsonError('Error occurred during update function execution',
-      {
-        err,
-        filePath,
-      })
-  }
-  /**
-   * Updates a JSON object if valid changes are detected, then writes the changes to a file.
-   *
-   * @template T Type of initial data.
-   * @param data Existing data.
-   * @param updatedData New data to compare.
-   * @param filePath The path to the JSON file to be updated.
-   * @param encryptData (Optional) Boolean indicating whether data must be encrypted before being saved.
-   * @throws UpdateJsonError If an error occurs when writing to the file.
-   */
-  const changes = Object.entries(updatedData).reduce<Partial<T>>(
-    (acc, [key, newValue]) => {
-      const currentValue = data[key]
+    // Load file JSON
+    const data = await loadFileContent<T>(filePath, true)
 
-      if (newValue !== undefined && newValue !== '' && newValue !== currentValue) {
-        acc[key as keyof T] = newValue as T[keyof T]
-      }
-      return acc
-    },
-    {})
-  // If any changes are made, the final data is saved in a JSON file, with an option to encrypt it.
-  if (Object.keys(changes).length > 0) {
+    // Check if correctly loaded of content
+    if (!data) {
+      const errorMessage = 'Unable to read JSON file content prior to update'
+      logger?.error(errorMessage)
+      throw new UpdateJsonError(errorMessage, { filePath })
+    }
+
+    let updatedData: Partial<T>
     try {
-      const finalData = { ...data, ...changes }
-
-      if (encryptData) {
-        const encryptedData = encrypt(JSON.stringify(finalData))
-        await writeJson(filePath, encryptedData)
-      }
-      else {
-        await writeJson(filePath, finalData)
-      }
+      // User update function
+      updatedData = updateFunction(data)
     }
-    catch (error) {
-      throw new UpdateJsonError('Failed to write updated data to JSON file', {
-        error,
+    catch (err) {
+      throw new UpdateJsonError('Error when executing the update function', {
+        error: err,
         filePath,
-        changes,
       })
     }
+    // Merges changes with existing data
+    const finalData = { ...data } // Creates a copy of the original data
+    let hasChanges = false
+
+    // Itère on updatedData keys
+    for (const key in updatedData) {
+      // Checks that the key actually belongs to the object (avoids inherited prototype properties)
+      if (Object.hasOwn(updatedData, key)) {
+        const newValue = updatedData[key]
+        // Checks if the new value is different from the old one and is not undefined
+        if (newValue !== undefined && newValue !== finalData[key]) {
+          finalData[key] = newValue
+          hasChanges = true
+        }
+      }
+    }
+
+    if (hasChanges) {
+      const dataToWrite = encryptData ? encrypt(JSON.stringify(finalData)) : finalData
+      await writeJson(filePath, dataToWrite)
+    }
+  }
+  catch (error) {
+    if (error instanceof ApplicationError) {
+      throw error
+    }
+    throw new UpdateJsonError('JSON file update failed', {
+      error,
+      filePath,
+    })
   }
 }
 /**

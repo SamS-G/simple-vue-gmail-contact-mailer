@@ -42,14 +42,14 @@ export class ValidationService implements IValidationService {
    * @returns {boolean} - Returns `success: true + obj` if the object is valid and conforms to the schema,
    * otherwise `success: false + zod errors`.
    */
-  validateType<T>(obj: unknown, schema: z.ZodType<T, z.ZodTypeDef, T>): {
+  validateType<T>(obj: object, schema: z.ZodType<T, z.ZodTypeDef, T>): {
     success: true
     type: 'validated'
     data: T
   } | {
     success: false
     type: 'error'
-    errors: ZodIssue[] | unknown
+    errors: ZodIssue[]
   } {
     try {
       const result = schema.safeParse(obj) // Validate data without thow exception

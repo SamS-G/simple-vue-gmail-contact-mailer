@@ -1,4 +1,5 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+
 export default defineNuxtConfig({
   modules: ['@vesp/nuxt-fontawesome', 'usebootstrap', '@nuxt/eslint'],
   devtools: { enabled: true },
@@ -12,8 +13,9 @@ export default defineNuxtConfig({
       encryptionKey: process.env.ENCRYPTION_KEY,
       sendEmailTo: process.env.SEND_EMAIL_TO,
       templates: process.env.TEMPLATES,
+      baseDataModel: process.env.BASE_DATA_MODEL,
       tokenStorage: process.env.TOKEN_LOCAL,
-      initialCredentials: process.env.INITIAL_CREDENTIALS,
+      initializeCredentials: process.env.INITIALIZE_CREDENTIALS,
       log: process.env.LOG,
     },
     rootDir: process.cwd(),
