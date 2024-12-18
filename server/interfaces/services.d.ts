@@ -1,4 +1,4 @@
-import type { Credentials } from 'google-auth-library'
+import type { Credentials, OAuth2Client } from 'google-auth-library'
 import type { H3Error, H3Event } from 'h3'
 import type { Schema } from 'yup'
 import type { z, ZodIssue } from 'zod'
