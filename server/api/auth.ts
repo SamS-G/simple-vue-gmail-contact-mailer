@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
     const initializeFile = await loadFileContent<StoredGoogleTokens>(initializeCredentials, true)
 
     // Generate auth URL if not existing
-    if (!initializeFile.code) {
+    if (initializeFile.code) {
       const url = await apiGmailService.getAuthUrl()
 
       if (url) {
