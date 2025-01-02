@@ -1,10 +1,14 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 
 export default defineNuxtConfig({
+
   modules: ['@vesp/nuxt-fontawesome', 'usebootstrap', '@nuxt/eslint'],
   devtools: { enabled: true },
   css: ['~/assets/css/base.css', '~/assets/css/main.css'],
   runtimeConfig: {
+    public: {
+      debug: true,
+    },
     private: {
       clientID: process.env.CLIENT_ID,
       clientSecret: process.env.CLIENT_SECRET,
@@ -18,7 +22,6 @@ export default defineNuxtConfig({
       initializeCredentials: process.env.INITIALIZE_CREDENTIALS,
       log: process.env.LOG,
     },
-    rootDir: process.cwd(),
   },
   routeRules: {
     '/api/send-email': {
@@ -31,6 +34,9 @@ export default defineNuxtConfig({
       appMiddleware: 'content',
       ssr: true,
     },
+  }, sourcemap: {
+    server: true,
+    client: true,
   },
   dev: true,
   compatibilityDate: '2024-04-03',

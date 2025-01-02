@@ -69,7 +69,7 @@ export class TemplateService implements ITemplateService {
     }
     catch (err) {
       const error = <Error>err
-      throw new CreateTemplateDataModel('Can\'t create template model data with provided models', { dataModel: dataModel, error: error })
+      throw new CreateTemplateDataModel('Can\'t create template model data with provided models', { dataModel: dataModel, error: error.message })
     }
   }
 

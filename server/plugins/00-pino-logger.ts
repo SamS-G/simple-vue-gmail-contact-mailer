@@ -32,7 +32,7 @@ export default defineNitroPlugin((nitroApp) => {
           },
         },
     base: {
-      app: 'myApp',
+      app: 'webconceptions form',
       environment: process.env.NODE_ENV ?? 'development',
     },
   })

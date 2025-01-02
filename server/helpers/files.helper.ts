@@ -66,51 +66,44 @@ export const loadFileContent = async <T>(filePath: string, toObject: boolean = f
  * @param updateFunction
  * @param encryptData
  */
-export const updateJson = async <T extends Record<string, unknown>>(
+export const updateJson = async <T extends Record<string, never>>(
   filePath: string,
-  updateFunction: (data: T) => Partial<T>,
+  updateFunction: (data: Readonly<T>) => Partial<T>,
   encryptData: boolean = false,
 ): Promise<void> => {
   const logger = getLogger()
 
   try {
-    // Load file JSON
-    const data = await loadFileContent<T>(filePath, true)
+    // Charger le fichier JSON
+    const fileContent = await loadFileContent<T>(filePath, true)
 
-    // Check if correctly loaded of content
-    if (!data) {
-      const errorMessage = 'Unable to read JSON file content prior to update'
+    if (!fileContent || typeof fileContent !== 'object') {
+      const errorMessage = 'Le fichier JSON est vide ou contient un contenu invalide.'
       logger?.error(errorMessage)
-      throw new UpdateJsonError(errorMessage, { filePath })
+      throw new UpdateJsonError(errorMessage, { filePath, content: fileContent })
     }
+
+    // On cast le type car on a vérifié plus haut que c'est bien un objet
+    const data: T = fileContent
 
     let updatedData: Partial<T>
     try {
-      // User update function
+      // Fonction de mise à jour utilisateur
       updatedData = updateFunction(data)
     }
     catch (err) {
-      throw new UpdateJsonError('Error when executing the update function', {
-        error: err,
-        filePath,
+      logger?.error(`Erreur lors de l'exécution de la fonction de mise à jour de updateJson(), car : ${err}`)
+      throw new UpdateJsonError('Erreur lors de l\'exécution de la fonction de mise à jour de updateJson()', {
+        error: err?.message,
+        file: filePath,
       })
     }
-    // Merges changes with existing data
-    const finalData = { ...data } // Creates a copy of the original data
-    let hasChanges = false
 
-    // Itère on updatedData keys
-    for (const key in updatedData) {
-      // Checks that the key actually belongs to the object (avoids inherited prototype properties)
-      if (Object.hasOwn(updatedData, key)) {
-        const newValue = updatedData[key]
-        // Checks if the new value is different from the old one and is not undefined
-        if (newValue !== undefined && newValue !== finalData[key]) {
-          finalData[key] = newValue
-          hasChanges = true
-        }
-      }
-    }
+    // Fusionner les modifications avec les données existantes de manière immuable
+    const finalData = { ...data, ...updatedData }
+
+    // Vérifier si des changements ont été effectués de manière plus performante
+    const hasChanges = Object.keys(updatedData).length > 0
 
     if (hasChanges) {
       const dataToWrite = encryptData ? encrypt(JSON.stringify(finalData)) : finalData
@@ -121,8 +114,8 @@ export const updateJson = async <T extends Record<string, unknown>>(
     if (error instanceof ApplicationError) {
       throw error
     }
-    throw new UpdateJsonError('JSON file update failed', {
-      error,
+    throw new UpdateJsonError('La mise à jour du fichier JSON a échoué', {
+      error: error?.message, // Utilisation de optional chaining
       filePath,
     })
   }

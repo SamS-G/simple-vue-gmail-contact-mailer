@@ -10,11 +10,8 @@ import { ResolvePartialPaths } from '../errors/custom-errors'
  * @returns The absolute path resolved from the root directory and the target.
  */
 export const pathResolver = (target: string, create: boolean = false): string => {
-  const config = useRuntimeConfig()
-  // Retrieves root directory from runtimeConfig
-  const rootDir = config.rootDir
   // Resolves relative paths into absolutes
-  const filePath = path.resolve(rootDir, target)
+  const filePath = path.resolve(process.cwd(), target)
   const dir = path.dirname(filePath)
   // Create a file / folder if create option enabled
   if (create && !fs.existsSync(dir)) {
